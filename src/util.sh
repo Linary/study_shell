@@ -1,13 +1,4 @@
-#!/bin/bash
-
-# read a property from .properties file
-function read_property() {
-    # file path
-    file_name=$1
-    # replace "." to "\."
-    property_name=`echo $2 | sed 's/\./\\\./g'`
-    cat $file_name | sed -n -e "s/^[ ]*//g;/^#/d;s/^$property_name=//p" | tail -1
-}
+#!/usr/bin/env bash
 
 function write_property() {
     local file=$1
@@ -191,33 +182,6 @@ function ensure_path_writable() {
     if [ ! -w "${path}" ]; then
         echo "No write permission on directory ${path}"
         exit 1
-    fi
-}
-
-function get_ip() {
-    local os=`uname`
-    local loopback="127.0.0.1"
-    local ip=""
-    case $os in
-        Linux) ip=`ifconfig | grep 'inet addr:'| grep -v "$loopback" | cut -d: -f2 | awk '{ print $1}'`;;
-        FreeBSD|OpenBSD|Darwin) ip=`ifconfig  | grep -E 'inet.[0-9]' | grep -v "$loopback" | awk '{ print $2}'`;;
-        SunOS) ip=`ifconfig -a | grep inet | grep -v "$loopback" | awk '{ print $2} '`;;
-        *) ip=$loopback;;
-    esac
-    echo $ip
-}
-
-function download() {
-    local path=$1
-    local link_url=$2
-
-    if command -v wget >/dev/null 2>&1; then
-        wget --help | grep -q '\--show-progress' && progress_opt="-q --show-progress" || progress_opt=""
-        wget ${link_url} -P ${path} $progress_opt
-    elif command -v curl >/dev/null 2>&1; then
-        curl ${link_url} -o ${path}/${link_url}
-    else
-        echo "Required wget or curl but they are not installed"
     fi
 }
 
