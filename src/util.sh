@@ -1,40 +1,5 @@
 #!/usr/bin/env bash
 
-function write_property() {
-    local file=$1
-    local key=$2
-    local value=$3
-
-    local os=`uname`
-    case $os in
-        # Note: in mac os should use sed -i '' "xxx" to replace string,
-        # otherwise prompt 'command c expects \ followed by text'.
-        # See http://www.cnblogs.com/greedy-day/p/5952899.html
-        Darwin) sed -i '' "s!$key=.*!$key=$value!g" "$file" ;;
-        *) sed -i "s!$key=.*!$key=$value!g" "$file" ;;
-    esac
-}
-
-function parse_yaml() {
-    local file=$1
-    local version=$2
-    local module=$3
-
-    cat $file | tr -d '\n {}'| awk -F',+|:' '''{
-        pre="";
-        for(i=1; i<=NF; ) {
-            if(match($i, /version/)) {
-                pre=$i;
-                i+=1
-            } else {
-                result[pre"-"$i] = $(i+1);
-                i+=2
-            }
-        }
-    } END {for(e in result) {print e": "result[e]}}''' \
-    | grep "$version-$module" | awk -F':' '{print $2}' | tr -d ' ' && echo
-}
-
 function process_num() {
     num=`ps -ef | grep $1 | grep -v grep | wc -l`
     return $num
@@ -43,45 +8,6 @@ function process_num() {
 function process_id() {
     pid=`ps -ef | grep $1 | grep -v grep | awk '{print $2}'`
     return $pid
-}
-
-# check the port of rest server is occupied
-function check_port() {
-    local port=`echo $1 | awk -F':' '{print $3}'`
-    lsof -i :$port >/dev/null
-
-    if [ $? -eq 0 ]; then
-        echo "The port "$port" has already used"
-        exit 1
-    fi
-}
-
-function crontab_append() {
-    local job="$1"
-    crontab -l | grep -F "$job" >/dev/null 2>&1
-    if [ $? -eq 0 ]; then
-        return 1
-    fi
-    (crontab -l ; echo "$job") | crontab -
-}
-
-function crontab_remove() {
-    local job="$1"
-    # check exist before remove
-    crontab -l | grep -F "$job" >/dev/null 2>&1
-    if [ $? -eq 1 ]; then
-        return 0
-    fi
-
-    crontab -l | grep -Fv "$job"  | crontab -
-
-    # Check exist after remove
-    crontab -l | grep -F "$job" >/dev/null 2>&1
-    if [ $? -eq 0 ]; then
-        return 1
-    else
-        return 0
-    fi
 }
 
 # wait_for_startup friendly_name host port timeout_s
@@ -170,19 +96,6 @@ function remove_with_prompt() {
         [Yy]* ) rm -rf "$path";;
         * ) ;;
     esac
-}
-
-function ensure_path_writable() {
-    local path=$1
-    # Ensure input path exist
-    if [ ! -d "${path}" ]; then
-        mkdir -p ${path}
-    fi
-    # Check for write permission
-    if [ ! -w "${path}" ]; then
-        echo "No write permission on directory ${path}"
-        exit 1
-    fi
 }
 
 function ensure_package_exist() {
